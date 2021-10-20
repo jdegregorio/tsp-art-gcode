@@ -70,7 +70,7 @@ def pairwise(iterable):
     next(b, None)
     return zip(a, b)
 
-def create_svg_preview(df, path_tsp):
+def generate_svg(df, path_tsp):
     dwg = svgwrite.Drawing('preview.svg', profile='tiny', size=(12, 4))
     for idx_start, idx_end in list(pairwise(path_tsp)):
         x1, y1, r1 = df.loc[idx_start]
@@ -81,7 +81,14 @@ def create_svg_preview(df, path_tsp):
         dwg.add(line_inner)
     dwg.save()
 
-
+def generate_gcode(df, path_tsp):
+    with open('./out/gcode.nc', 'w') as f:
+        f.writelines('G90 G94\nG17\nG20\nG28 G91 X0 Y0 Z1.0\nG90\nT1\nS15000 M3\nG54\n')
+        x_init, y_init, _ = df.loc[0]
+        f.writelines(f'G0 X{x_init} Y{y_init}\n')
+        for idx in path_tsp:
+            x, y, r = df.loc[idx]
+            f.writelines(f'G1 X{x} Y{y} Z{-r}\n')
 
 if __name__ == "__main__":
 
@@ -93,6 +100,7 @@ if __name__ == "__main__":
     df = resize(df, max_xy=12, min_r=0.025, max_r=0.075)
 
     # Create outputs
-    create_svg_preview(df, path_tsp)
-
+    generate_svg(df, path_tsp)
+    generate_gcode(df, path_tsp)
+    
     
