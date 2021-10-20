@@ -23,19 +23,7 @@ def load_stipple_points(path_stipple):
     df = df.astype('float')
     return df
 
-def compute_distance_matrix(df):
-    coords = list(zip(df.x, df.y))
-    coords = np.array(coords)
-    mat_dist = pdist(coords)
-    mat_dist = squareform(mat_dist)
-    mat_dist = np.tril(mat_dist)
-    return mat_dist
-
-def solve_tsp(df):
-    #
-    return None
-
-def resize(df, max_xy=1, min_r=0.5, max_r=1.0):
+def standardize_dimensions(df):
     x_min = df['x'].min()
     x_max = df['x'].max()
     x_len = x_max - x_min
@@ -53,6 +41,18 @@ def resize(df, max_xy=1, min_r=0.5, max_r=1.0):
         df['y'] = df['y']/ratio
     if ratio <= 1:
         df['x'] = df['x']*ratio
+    return df
+
+def compute_distance_matrix(df, radius_factor=0):
+    df.r = df.r*radius_factor
+    coords = list(zip(df.x, df.y, df.r))
+    coords = np.array(coords)
+    mat_dist = pdist(coords)
+    mat_dist = squareform(mat_dist)
+    mat_dist = np.tril(mat_dist)
+    return mat_dist
+
+def resize(df, max_xy=1, min_r=0.5, max_r=1.0):
     df['x'] = df['x']*max_xy
     df['y'] = df['y']*max_xy
     df['r'] = min_r + df['r']*(max_r - min_r)
@@ -62,20 +62,18 @@ def resize(df, max_xy=1, min_r=0.5, max_r=1.0):
 # MAIN -------------------------------------------------------------------------
 
 df = load_stipple_points(path_stipple)
-dist_mat = compute_distance_matrix(df)
-path_tsp = solve_tsp(dist_mat, optim_steps=6)
+df = standardize_dimensions(df)
+dist_mat = compute_distance_matrix(df, radius_factor=0.1)
+path_tsp = solve_tsp(dist_mat, optim_steps=5)
+
+#df = df.reindex(path_tsp).reset_index(drop=True)
 
 
+dwg = svgwrite.Drawing('preview.svg', profile='tiny')
+dwg.add(dwg.line((0, 0), (10, 0), stroke='green')
 
 
-
-
-
-# Prepare path data
-tsp_path = add_radius(tsp_path, stipple_points)
-df_path = pd.DataFrame.from_dict(tsp_path, orient='index', dtype=float)
-df_path = impute_radius(df_path)
-df_path = resize(df_path, max_xy=12, min_r=0.05, max_r=0.15)
+df = resize(df, max_xy=12, min_r=0.05, max_r=0.15)
 
 
 
