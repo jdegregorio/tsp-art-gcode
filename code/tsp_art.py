@@ -11,7 +11,11 @@ from reportlab.graphics import renderPM
 
 # Parameters
 path_stipple = './data/rainer_stipple.svg'
-
+radius_factor=0.01 # Contribution of radius/depth in TSP distance matrix
+optim_steps=10 # Number of optimization steps for TSP
+max_xy=12 # Final x-y scaling size (max dim of x and y, inches)
+min_r=0.025 # Min line width/radius
+max_r=0.075 # Max line width/radius
 
 def load_stipple_points(path_stipple):
     xml_doc = minidom.parse(path_stipple)
@@ -95,9 +99,9 @@ if __name__ == "__main__":
     # Generate points/path
     df = load_stipple_points(path_stipple)
     df = standardize_dimensions(df)
-    dist_mat = compute_distance_matrix(df, radius_factor=0.01)
-    path_tsp = solve_tsp(dist_mat, optim_steps=100)
-    df = resize(df, max_xy=12, min_r=0.025, max_r=0.075)
+    dist_mat = compute_distance_matrix(df, radius_factor=radius_factor)
+    path_tsp = solve_tsp(dist_mat, optim_steps=optim_steps)
+    df = resize(df, max_xy=max_xy, min_r=min_r, max_r=max_r)
 
     # Create outputs
     generate_svg(df, path_tsp)
