@@ -3,14 +3,9 @@ import numpy as np
 import pandas as pd
 from xml.dom import minidom
 
-# Read SVG files
-xml_stipple = minidom.parse('./data/rainer_stipple.svg')
-xml_tsp = minidom.parse('./data/rainer_tsp.svg')
-
-def create_id(x, y):
-    return str(int(np.round(float(x)))) + str(int(np.round(float(y))))
-
-def get_points(xml_doc):
+# './data/rainer_stipple.svg'
+def get_points(path_stipple):
+    xml_doc = minidom.parse(path_stipple)
     ls_points = xml_doc.getElementsByTagName('circle')
     dict_points = {}
     for point in ls_points:
@@ -19,31 +14,9 @@ def get_points(xml_doc):
         r = point.getAttribute('r')
         id = create_id(x, y)
         dict_points[id] =  {'x': x, 'y': y, 'r': r}
-    return dict_points
-
-def get_path(xml_doc):
-    path = xml_doc.getElementsByTagName('path')[0].getAttribute('d')
-    path = path.split('  ')
-    path.pop(0)
-    path.pop(-1)
-    dict_path = {}
-    for point in path:
-        x, y = point.split(' ')
-        id = create_id(x, y)
-        dict_path[id] =  {'x': x, 'y': y}
-    return dict_path
-
-def add_radius(path, points):
-    for key in tsp_path:
-        try:
-            path[key]['r'] = points[key]['r']
-        except:
-            path[key]['r'] = np.nan
-    return path
-
-def impute_radius(df):
-    df['r'] = df['r'].fillna(method='pad', limit=df.shape[0])
+    df = pd.DataFrame.from_dict(dict_points, orient='index', dtype='float')
     return df
+
 
 def resize(df, max_xy=1, min_r=0.5, max_r=1.0):
     x_min = df['x'].min()
