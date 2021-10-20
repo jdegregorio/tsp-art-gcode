@@ -27,6 +27,7 @@ def load_stipple_points(path_stipple):
     return df
 
 def standardize_dimensions(df):
+    df = df.copy()
     x_min = df['x'].min()
     x_max = df['x'].max()
     x_len = x_max - x_min
@@ -47,8 +48,9 @@ def standardize_dimensions(df):
     return df
 
 def compute_distance_matrix(df, radius_factor=0):
-    df.r = df.r*radius_factor
-    coords = list(zip(df.x, df.y, df.r))
+    df = df.copy()
+    df['r'] = df['r']*radius_factor
+    coords = list(zip(df['x'], df['y'], df['r']))
     coords = np.array(coords)
     mat_dist = pdist(coords)
     mat_dist = squareform(mat_dist)
@@ -56,6 +58,7 @@ def compute_distance_matrix(df, radius_factor=0):
     return mat_dist
 
 def resize(df, max_xy=1, min_r=0.5, max_r=1.0):
+    df = df.copy()
     df['x'] = df['x']*max_xy
     df['y'] = df['y']*max_xy
     df['r'] = min_r + df['r']*(max_r - min_r)
@@ -65,26 +68,31 @@ def pairwise(iterable):
     "s -> (s0,s1), (s1,s2), (s2, s3), ..."
     a, b = itertools.tee(iterable)
     next(b, None)
-    return zip(a, b)  
+    return zip(a, b)
 
-# MAIN -------------------------------------------------------------------------
-
-df = load_stipple_points(path_stipple)
-df = standardize_dimensions(df)
-dist_mat = compute_distance_matrix(df, radius_factor=0.01)
-path_tsp = solve_tsp(dist_mat, optim_steps=5)
-df = resize(df, max_xy=12, min_r=0.05, max_r=0.09)
-
-dwg = svgwrite.Drawing('preview.svg', profile='tiny', size=(12, 4))
-for idx_start, idx_end in list(pairwise(path_tsp)):
-    x1, y1, r1 = df.loc[idx_start]
-    x2, y2, r2 = df.loc[idx_end]
-    dwg.add(dwg.line((x1, y1), (x2, y2), stroke='green', stroke_width=r1, stroke_opacity=0.15))
-    dwg.add(dwg.line((x1, y1), (x2, y2), stroke='green', stroke_width=0.005, stroke_opacity=0.8))
-dwg.save()
+def create_svg_preview(df, path_tsp):
+    dwg = svgwrite.Drawing('preview.svg', profile='tiny', size=(12, 4))
+    for idx_start, idx_end in list(pairwise(path_tsp)):
+        x1, y1, r1 = df.loc[idx_start]
+        x2, y2, r2 = df.loc[idx_end]
+        line_outer = dwg.line((x1, y1), (x2, y2), stroke='green', stroke_width=r1, stroke_opacity=0.15)
+        line_inner = dwg.line((x1, y1), (x2, y2), stroke='green', stroke_width=0.005, stroke_opacity=0.8)
+        dwg.add(line_outer)
+        dwg.add(line_inner)
+    dwg.save()
 
 
 
+if __name__ == "__main__":
 
+    # Generate points/path
+    df = load_stipple_points(path_stipple)
+    df = standardize_dimensions(df)
+    dist_mat = compute_distance_matrix(df, radius_factor=0.01)
+    path_tsp = solve_tsp(dist_mat, optim_steps=100)
+    df = resize(df, max_xy=12, min_r=0.025, max_r=0.075)
 
-#df = df.reindex(path_tsp).reset_index(drop=True)
+    # Create outputs
+    create_svg_preview(df, path_tsp)
+
+    
