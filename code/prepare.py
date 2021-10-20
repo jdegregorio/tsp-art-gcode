@@ -2,21 +2,38 @@ from pyhere import here
 import numpy as np
 import pandas as pd
 from xml.dom import minidom
+from scipy.spatial.distance import pdist, squareform
+from tsp_solver.greedy import solve_tsp
+import svgwrite
 
-# './data/rainer_stipple.svg'
-def get_points(path_stipple):
+# Parameters
+path_stipple = './data/rainer_stipple.svg'
+
+
+def load_stipple_points(path_stipple):
     xml_doc = minidom.parse(path_stipple)
-    ls_points = xml_doc.getElementsByTagName('circle')
-    dict_points = {}
-    for point in ls_points:
-        x = point.getAttribute('cx')
-        y = point.getAttribute('cy')
-        r = point.getAttribute('r')
-        id = create_id(x, y)
-        dict_points[id] =  {'x': x, 'y': y, 'r': r}
-    df = pd.DataFrame.from_dict(dict_points, orient='index', dtype='float')
+    ls_elements = xml_doc.getElementsByTagName('circle')
+    ls_points = []
+    for element in ls_elements:
+        x = element.getAttribute('cx')
+        y = element.getAttribute('cy')
+        r = element.getAttribute('r')
+        ls_points.append({'x': x, 'y': y, 'r': r})
+    df = pd.DataFrame(ls_points)
+    df = df.astype('float')
     return df
 
+def compute_distance_matrix(df):
+    coords = list(zip(df.x, df.y))
+    coords = np.array(coords)
+    mat_dist = pdist(coords)
+    mat_dist = squareform(mat_dist)
+    mat_dist = np.tril(mat_dist)
+    return mat_dist
+
+def solve_tsp(df):
+    #
+    return None
 
 def resize(df, max_xy=1, min_r=0.5, max_r=1.0):
     x_min = df['x'].min()
@@ -42,10 +59,17 @@ def resize(df, max_xy=1, min_r=0.5, max_r=1.0):
     return df
 
 
+# MAIN -------------------------------------------------------------------------
 
-# Extract points and path from SVG
-stipple_points = get_points(xml_stipple)
-tsp_path = get_path(xml_tsp)
+df = load_stipple_points(path_stipple)
+dist_mat = compute_distance_matrix(df)
+path_tsp = solve_tsp(dist_mat, optim_steps=6)
+
+
+
+
+
+
 
 # Prepare path data
 tsp_path = add_radius(tsp_path, stipple_points)
