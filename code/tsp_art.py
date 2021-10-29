@@ -85,14 +85,16 @@ def generate_svg(df, path_tsp):
         dwg.add(line_inner)
     dwg.save()
 
-def generate_gcode(df, path_tsp):
+def generate_gcode_tsp(df, path_tsp, feed_rate=40):
     with open('./out/gcode.nc', 'w') as f:
         f.writelines('G90 G94\nG17\nG20\nG28 G91 X0 Y0 Z1.0\nG90\nT1\nS15000 M3\nG54\n')
-        x_init, y_init, _ = df.loc[0]
+        x_init, y_init, r_init = df.loc[path_tsp[0]]
+        path_tsp.pop(0)
         f.writelines(f'G0 X{x_init} Y{y_init}\n')
+        f.writelines(f'G1 Z{-r_init} F{feed_rate}\n')
         for idx in path_tsp:
             x, y, r = df.loc[idx]
-            f.writelines(f'G1 X{x} Y{y} Z{-r}\n')
+            f.writelines(f'G1 X{x} Y{y} Z{-r} F{feed_rate}\n')
 
 if __name__ == "__main__":
 
@@ -105,6 +107,6 @@ if __name__ == "__main__":
 
     # Create outputs
     generate_svg(df, path_tsp)
-    generate_gcode(df, path_tsp)
+    generate_gcode_tsp(df, path_tsp)
     
     
