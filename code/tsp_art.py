@@ -5,14 +5,17 @@ from scipy.spatial.distance import pdist, squareform
 import itertools
 from tsp_solver.greedy import solve_tsp
 import svgwrite
+import yaml
 
 # Parameters
-path_stipple = './data/rainer_stipple.svg'
-radius_factor = 0.01  # Contribution of radius/depth in TSP distance matrix
-optim_steps = 10  # Number of optimization steps for TSP
-max_xy = 12  # Final x-y scaling size (max dim of x and y, inches)
-min_r = 0.025  # Min line width/radius
-max_r = 0.075  # Max line width/radius
+with open('./params.yaml', 'r') as f:
+    params = yaml.load(f, Loader=yaml.SafeLoader)
+path_stipple = params['path_stipple']
+radius_factor = params['radius_factor']
+optim_steps = params['optim_steps']
+max_xy = params['max_xy']
+min_r = params['min_r']
+max_r = params['max_r']
 
 
 def load_stipple_points(path_stipple):
@@ -77,9 +80,9 @@ def pairwise(iterable):
     return zip(a, b)
 
 
-def generate_svg(df, path_tsp):
+def generate_svg(df, tsp):
     dwg = svgwrite.Drawing('preview.svg', profile='tiny', size=(12, 4))
-    for idx_start, idx_end in list(pairwise(path_tsp)):
+    for idx_start, idx_end in list(pairwise(tsp)):
         x1, y1, r1 = df.loc[idx_start]
         x2, y2, r2 = df.loc[idx_end]
         line_outer = dwg.line(
@@ -95,24 +98,24 @@ def generate_svg(df, path_tsp):
     dwg.save()
 
 
-def generate_gcode_tsp(df, path_tsp, feed_rate=40):
+def generate_gcode_tsp(df, tsp, feed_rate=40):
     with open('./out/gcode_tsp.nc', 'w') as f:
         f.writelines('G90 G94\nG17\nG20\nG28 G91 X0 Y0 Z1.0\nG90\n')
         f.writelines('T1\nS15000 M3\nG54\n')
-        x_init, y_init, r_init = df.loc[path_tsp[0]]
-        path_tsp.pop(0)
+        x_init, y_init, r_init = df.loc[tsp[0]]
+        tsp.pop(0)
         f.writelines(f'G0 X{x_init} Y{y_init}\n')
         f.writelines(f'G1 Z{-r_init} F{feed_rate}\n')
-        for idx in path_tsp:
+        for idx in tsp:
             x, y, r = df.loc[idx]
             f.writelines(f'G1 X{x} Y{y} Z{-r} F{feed_rate}\n')
 
 
-def generate_gcode_dots(df, path_tsp, z_safe=0.1, feed_rate=60):
+def generate_gcode_dots(df, tsp, z_safe=0.1, feed_rate=60):
     with open('./out/gcode_dots.nc', 'w') as f:
         f.writelines('G90 G94\nG17\nG20\nG28 G91 X0 Y0 Z1.0\nG90\n')
         f.writelines('T1\nS15000 M3\nG54\n')
-        for idx in path_tsp:
+        for idx in tsp:
             x, y, r = df.loc[idx]
             f.writelines(f'G0 X{x} Y{y}\n')
             f.writelines(f'G1 Z{-r} F{feed_rate}\n')
@@ -126,10 +129,10 @@ if __name__ == "__main__":
     df = load_stipple_points(path_stipple)
     df = standardize_dimensions(df)
     dist_mat = compute_distance_matrix(df, radius_factor=radius_factor)
-    path_tsp = solve_tsp(dist_mat, optim_steps=optim_steps)
+    tsp = solve_tsp(dist_mat, optim_steps=optim_steps)
     df = resize(df, max_xy=max_xy, min_r=min_r, max_r=max_r)
 
     # Create outputs
-    generate_svg(df, path_tsp)
-    generate_gcode_tsp(df, path_tsp)
-    generate_gcode_dots(df, path_tsp)
+    generate_svg(df, tsp)
+    generate_gcode_tsp(df, tsp)
+    generate_gcode_dots(df, tsp)
