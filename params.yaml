@@ -1,0 +1,7 @@
+force: False  # Use existing processed files with same name if available
+path_stipple: './data/rainer_stipple.svg'
+radius_factor: 0.01  # Contribution of radius/depth in TSP distance matrix
+optim_steps: 10  # Number of optimization steps for TSP
+max_xy: 12  # Final x-y scaling size (max dim of x and y, inches)
+min_r: 0.015  # Min line width/radius
+max_r: 0.035  # Max line width/radius
